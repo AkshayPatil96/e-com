@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { StoreProvider } from "@/redux/provider";
 import type { Metadata } from "next";
 import { Josefin_Sans, Poppins } from "next/font/google";
-import "./globals.scss";
+import "./globals.css";
 
 const geistJosefin = Josefin_Sans({
   subsets: ["latin"],
