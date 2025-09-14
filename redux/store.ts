@@ -20,19 +20,19 @@ export const store = configureStore({
 });
 
 // call refresh token endpoint on app load
-const initializeApp = async () => {
-  await store.dispatch(
-    apiSlice.endpoints.refreshToken.initiate({}, { forceRefetch: true }),
-  );
+// const initializeApp = async () => {
+//   await store.dispatch(
+//     apiSlice.endpoints.refreshToken.initiate({}, { forceRefetch: true }),
+//   );
 
-  await store.dispatch(
-    apiSlice.endpoints.loadUser.initiate({}, { forceRefetch: true }),
-  );
-};
+//   await store.dispatch(
+//     apiSlice.endpoints.loadUser.initiate({}, { forceRefetch: true }),
+//   );
+// };
 
 // Export store types
 export type AppStore = typeof store;
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
-initializeApp();
+// initializeApp();

@@ -13,6 +13,17 @@ type RegistrationData = {
   password: string;
 };
 
+type ReturnData = {
+  success: boolean;
+  data: any;
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+    tokenType: string;
+    expiresIn: number;
+  };
+};
+
 export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     register: builder.mutation<RegistrationResponse, RegistrationData>({
@@ -36,7 +47,11 @@ export const authApi = apiSlice.injectEndpoints({
         }
       },
     }),
-    activation: builder.mutation({
+
+    activation: builder.mutation<
+      ReturnData,
+      { activationCode: string; activationToken: string }
+    >({
       query: ({ activationCode, activationToken }) => ({
         url: "/auth/activate-user",
         method: "POST",
@@ -48,8 +63,8 @@ export const authApi = apiSlice.injectEndpoints({
           const result = await queryFulfilled;
           dispatch(
             userLoggedIn({
-              accessToken: result.data.accessToken,
-              user: result.data.user,
+              accessToken: result.data.tokens.accessToken,
+              user: result.data.data,
             }),
           );
         } catch (error: any) {
@@ -57,7 +72,8 @@ export const authApi = apiSlice.injectEndpoints({
         }
       },
     }),
-    login: builder.mutation({
+
+    login: builder.mutation<ReturnData, { email: string; password: string }>({
       query: ({ email, password }) => ({
         url: "/auth/login",
         method: "POST",
@@ -69,7 +85,7 @@ export const authApi = apiSlice.injectEndpoints({
           const result = await queryFulfilled;
           dispatch(
             userLoggedIn({
-              accessToken: result.data.accessToken,
+              accessToken: result.data.tokens.accessToken,
               user: result.data.data,
             }),
           );
@@ -78,27 +94,7 @@ export const authApi = apiSlice.injectEndpoints({
         }
       },
     }),
-    socialAuth: builder.mutation({
-      query: ({ email, name, avatar }) => ({
-        url: "/auth/social-auth",
-        method: "POST",
-        body: { email, name, avatar },
-        credentials: "include" as const,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          const result = await queryFulfilled;
-          dispatch(
-            userLoggedIn({
-              accessToken: result.data.accessToken,
-              user: result.data.user,
-            }),
-          );
-        } catch (error: any) {
-          console.log("error: ", error);
-        }
-      },
-    }),
+
     forgotPassword: builder.mutation({
       query: ({ email }) => ({
         url: "/auth/forget-password",
@@ -107,6 +103,7 @@ export const authApi = apiSlice.injectEndpoints({
         credentials: "include" as const,
       }),
     }),
+
     resetPassword: builder.mutation({
       query: ({ password, confirmPassword, token }) => ({
         url: `/auth/reset-password/${token}`,
@@ -115,20 +112,40 @@ export const authApi = apiSlice.injectEndpoints({
         credentials: "include" as const,
       }),
     }),
-    logout: builder.mutation({
+
+    logout: builder.mutation<void, void>({
       query: () => ({
         url: "/auth/logout",
         method: "POST",
-        credentials: "include" as const,
       }),
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          dispatch(userLoggedOut({}));
+          dispatch(userLoggedOut());
         } catch (error: any) {
           console.log("error: ", error);
+          dispatch(userLoggedOut());
         }
       },
+    }),
+
+    refreshToken: builder.mutation<{ tokens: { accessToken: string } }, void>({
+      query: () => ({
+        url: "/auth/refresh-token",
+        method: "GET",
+      }),
+    }),
+
+    resendActivation: builder.mutation<
+      { success: boolean; message: string; activationToken: string },
+      { email: string }
+    >({
+      query: (email) => ({
+        url: "/auth/resend-activation",
+        method: "POST",
+        body: { email },
+        credentials: "include" as const,
+      }),
     }),
   }),
 
@@ -140,8 +157,9 @@ export const {
   useRegisterMutation,
   useActivationMutation,
   useLoginMutation,
-  useSocialAuthMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useLogoutMutation,
+  useRefreshTokenMutation,
+  useResendActivationMutation,
 } = authApi;

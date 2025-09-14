@@ -4,6 +4,7 @@ import { nameInitials } from "@/lib/utils";
 import Logo from "@/public/assets/icons/logo.svg";
 import { useLogoutMutation } from "@/redux/auth/authApi";
 import { useNestedCategoriesQuery } from "@/redux/category/categoryApi";
+import { headersHeight } from "@/utils/utils";
 import {
   CircleUser,
   Heart,
@@ -18,12 +19,13 @@ import { usePathname } from "next/navigation";
 import { Result } from "postcss";
 import { FC, useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import Categories from "./Categories";
-import Navbar from "./Navbar";
-import { AspectRatio } from "./ui/aspect-ratio";
-import AutoComplete from "./ui/autoComplete";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Button } from "./ui/button";
+import { toast } from "sonner";
+import Categories from "../Categories";
+import Navbar from "../Navbar";
+import { AspectRatio } from "../ui/aspect-ratio";
+import AutoComplete from "../ui/autoComplete";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +39,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "../ui/dropdown-menu";
 import {
   Sheet,
   SheetClose,
@@ -48,9 +50,8 @@ import {
   SheetOverlay,
   SheetTitle,
   SheetTrigger,
-} from "./ui/sheet";
-import TooltipContainer from "./ui/TooltipContainer";
-import { toast } from "sonner";
+} from "../ui/sheet";
+import TooltipContainer from "../ui/TooltipContainer";
 
 interface Props {}
 
@@ -66,7 +67,10 @@ const Header: FC<Props> = ({}) => {
   return (
     <>
       <div className="border-b sticky z-10 top-0 bg-white">
-        <header className="container h-[8vh] flex items-center justify-between gap-8">
+        <header
+          className="container flex items-center justify-between gap-8"
+          style={{ height: headersHeight }}
+        >
           <div className="w-[200px] md:w-[150px] flex items-center gap-3">
             <div className="lg:hidden cursor-pointer">
               <MobileMenu />
@@ -165,7 +169,7 @@ export const ProfileMenu: FC<DropdownMenuProps> = ({ user }) => {
     if (isSuccess) toast.success("Logged out successfully");
 
     if (error) {
-      if ("data" in error) {
+      if (typeof error === "object" && error !== null && "data" in error) {
         const errorData = error as any;
         toast.error(errorData.data.message);
       } else {
@@ -218,7 +222,7 @@ export const ProfileMenu: FC<DropdownMenuProps> = ({ user }) => {
         <DropdownMenuItem
           onClick={(e) => {
             e.preventDefault();
-            logout({});
+            logout();
           }}
         >
           Log out

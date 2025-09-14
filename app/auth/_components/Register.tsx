@@ -69,7 +69,7 @@ const Register: FC = () => {
       router.push("/account/register/verify");
     }
     if (error) {
-      if ("data" in error) {
+      if (typeof error === "object" && error !== null && "data" in error) {
         const errorData = error as any;
         toast.error(errorData.data.message);
       }
@@ -82,7 +82,7 @@ const Register: FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col justify-between">
+    <div className="h-full flex flex-col justify-between gap-4">
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-[90%] grid grid-cols-12 mx-auto justify-center items-center gap-y-4 gap-x-8"

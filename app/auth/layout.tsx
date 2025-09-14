@@ -1,24 +1,22 @@
-"use client";
+import AuthFooter from "@/components/footer/AuthFooter";
+import AuthHeader from "@/components/header/AuthHeader";
+import SideImage from "@/public/assets/images/Side Image.png";
+import { useAppSelector } from "@/redux/hooks";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import React, { FC } from "react";
-import SideImage from "@/public/assets/images/Side Image.png";
-import { useLoadUserQuery } from "@/redux/api/apiSlice";
-import InfinityLoader from "@/components/ui/loader";
-import { useAppSelector } from "@/redux/hooks";
 
 type Props = {
   children: React.ReactNode;
 };
 
 const AuthLayout: FC<Props> = ({ children }) => {
-  const { user } = useAppSelector((state) => state.auth);
+  return (
+    <div className="flex flex-col min-h-screen justify-between">
+      <AuthHeader />
 
-  if (user) return redirect("/");
-  else
-    return (
-      <div className="w-full md:w-3/4 h-[550px] m-auto my-8 bg-white border border-slate-200 flex justify-center">
-        <div className="h-full flex-1 hidden lg:flex">
+      <div className="w-full md:w-3/4 m-auto my-12 bg-white flex justify-center items-center rounded-lg overflow-hidden md:border md:border-border/50 md:shadow-lg">
+        <div className="h-full flex-1 hidden lg:flex items-center justify-center">
           <Image
             src={SideImage}
             alt="Side Image"
@@ -27,10 +25,14 @@ const AuthLayout: FC<Props> = ({ children }) => {
             className="w-full h-full"
           />
         </div>
-        <div className="flex-1 flex flex-col justify-between px-2 py-5">
+
+        <div className="flex-1 flex justify-center items-center px-2 py-8">
           {children}
         </div>
       </div>
-    );
+
+      <AuthFooter />
+    </div>
+  );
 };
 export default AuthLayout;

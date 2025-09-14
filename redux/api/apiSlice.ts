@@ -1,48 +1,68 @@
+import type { BaseQueryFn } from "@reduxjs/toolkit/query";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { userLoggedIn, userRefereshToken } from "../auth/authSlice";
+import {
+  userLoggedIn,
+  userLoggedOut,
+  userRefereshToken,
+} from "../auth/authSlice";
+
+const baseQuery = fetchBaseQuery({
+  baseUrl: process.env.API_URL,
+  credentials: "include" as const, // Include cookies
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as any).auth.accessToken;
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    headers.set("Content-Type", "application/json");
+    return headers;
+  },
+});
+
+// Enhanced base query with automatic token refresh
+const baseQueryWithReauth: BaseQueryFn = async (args, api, extraOptions) => {
+  let result = await baseQuery(args, api, extraOptions);
+
+  if (result?.error?.status === 401) {
+    console.log("Access token expired, attempting refresh...");
+
+    const refreshResult = await baseQuery(
+      {
+        url: "/auth/refresh-token",
+        method: "GET",
+      },
+      api,
+      extraOptions,
+    );
+
+    if (refreshResult?.data) {
+      const refreshData = refreshResult.data as any;
+
+      api.dispatch(userRefereshToken(refreshData.tokens.accessToken));
+
+      console.log("Token refreshed successfully");
+
+      result = await baseQuery(args, api, extraOptions);
+    } else {
+      // Refresh failed - logout user
+      console.log("Token refresh failed - logging out");
+      api.dispatch(userLoggedOut());
+
+      // Redirect to login page
+      window.location.href = "/login";
+    }
+  }
+
+  return result;
+};
 
 export const apiSlice = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.API_URL,
-  }),
-  endpoints: (builder) => ({
-    refreshToken: builder.query({
-      query: () => ({
-        url: "/auth/refresh-token",
-        method: "GET",
-        credentials: "include" as const,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          const result = await queryFulfilled;
-          dispatch(
-            userRefereshToken({
-              accessToken: result.data.accessToken,
-            }),
-          );
-        } catch (error: any) {}
-      },
-    }),
-
-    loadUser: builder.query({
-      query: () => ({
-        url: "/user/me",
-        method: "GET",
-        credentials: "include" as const,
-      }),
-      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        try {
-          const result = await queryFulfilled;
-          dispatch(
-            userLoggedIn({
-              user: result.data.data,
-            }),
-          );
-        } catch (error: any) {}
-      },
-    }),
-  }),
+  baseQuery: baseQueryWithReauth,
+  tagTypes: ["User", "Product", "Order", "Category"],
+  endpoints: (builder) => ({}),
 });
 
-export const { useRefreshTokenQuery, useLoadUserQuery } = apiSlice;
+export const {} = apiSlice;

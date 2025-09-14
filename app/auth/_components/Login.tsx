@@ -50,7 +50,7 @@ const Login: FC<Props> = ({}) => {
       reset();
     }
     if (error) {
-      if ("data" in error) {
+      if (typeof error === "object" && error !== null && "data" in error) {
         const errorData = error as any;
         toast.error(errorData.data.message);
       } else {
@@ -63,7 +63,7 @@ const Login: FC<Props> = ({}) => {
     login(data);
 
   return (
-    <div className="h-full flex flex-col justify-between">
+    <div className="h-full flex flex-col justify-between gap-4">
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="w-[90%] grid grid-cols-12 mx-auto justify-center items-center gap-y-6 gap-x-8"

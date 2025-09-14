@@ -1,16 +1,8 @@
-"use client";
-
+import { Toaster } from "@/components/ui/sonner";
+import { StoreProvider } from "@/redux/provider";
 import type { Metadata } from "next";
 import { Josefin_Sans, Poppins } from "next/font/google";
 import "./globals.scss";
-import Header from "@/components/Header";
-import { Toaster } from "@/components/ui/sonner";
-import { StoreProvider } from "@/redux/provider";
-import { useLoadUserQuery } from "@/redux/api/apiSlice";
-import InfinityLoader from "@/components/ui/loader";
-import { usePathname } from "next/navigation";
-import SaleHeader from "@/components/SaleHeader";
-import Footer from "@/components/Footer";
 
 const geistJosefin = Josefin_Sans({
   subsets: ["latin"],
@@ -26,12 +18,17 @@ const geistPoppins = Poppins({
   weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
+export const metadata: Metadata = {
+  title: "E-Com",
+  description: "E-Commerce Website",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
+  // const pathname = usePathname();
 
   return (
     <html lang="en">
@@ -40,16 +37,16 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <StoreProvider>
-          {pathname?.includes("/admin") ? null : <SaleHeader />}
+          {/* {pathname?.includes("/admin") ? null : <SaleHeader />}
 
           {pathname?.includes("/admin") ||
           pathname?.includes("/search") ? null : (
             <Header />
-          )}
+          )} */}
 
           {children}
 
-          {pathname?.includes("/admin") ? null : <Footer />}
+          {/* {pathname?.includes("/admin") ? null : <Footer />} */}
 
           <Toaster
             richColors
@@ -61,19 +58,19 @@ export default function RootLayout({
     </html>
   );
 }
-const Custom: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoading } = useLoadUserQuery({});
-  console.log("isLoading: ", isLoading);
+// const Custom: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+//   const { isLoading } = useLoadUserQuery({});
+//   console.log("isLoading: ", isLoading);
 
-  return (
-    <>
-      {isLoading ? (
-        <div className="h-[85vh]">
-          <InfinityLoader />
-        </div>
-      ) : (
-        <>{children}</>
-      )}
-    </>
-  );
-};
+//   return (
+//     <>
+//       {isLoading ? (
+//         <div className="h-[85vh]">
+//           <InfinityLoader />
+//         </div>
+//       ) : (
+//         <>{children}</>
+//       )}
+//     </>
+//   );
+// };

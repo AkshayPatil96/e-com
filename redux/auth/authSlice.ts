@@ -9,9 +9,11 @@ interface IRegisterData {
 
 interface IAuthState {
   token: string;
-  user: any;
+  user: any | null;
   page: string;
   register: IRegisterData;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const initialState: IAuthState = {
@@ -19,14 +21,14 @@ const initialState: IAuthState = {
   user: null,
   page: "",
   register: { firstName: "", lastName: "", email: "", password: "" },
+  isAuthenticated: false,
+  isLoading: false,
 };
 
 type IUserRegistration = { token: string; register: IRegisterData };
 
 type IUserRefresh = { accessToken: string };
 type IUserLoggedIn = { accessToken?: string; user: any };
-
-type IUserLoggedOut = {};
 
 const authSlice = createSlice({
   name: "auth",
@@ -47,11 +49,14 @@ const authSlice = createSlice({
       state.page = "";
       state.register = { firstName: "", lastName: "", email: "", password: "" };
     },
-    userLoggedOut: (state, action: PayloadAction<IUserLoggedOut>) => {
+    userLoggedOut: (state, action: PayloadAction) => {
       state.token = "";
       state.user = "";
       state.page = "";
       state.register = { firstName: "", lastName: "", email: "", password: "" };
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
     },
   },
 });
@@ -64,3 +69,10 @@ export const {
 } = authSlice.actions;
 
 export default authSlice.reducer;
+
+export const selectCurrentUser = (state: { auth: IAuthState }) =>
+  state.auth.user;
+export const selectAccessToken = (state: { auth: IAuthState }) =>
+  state.auth.token;
+export const selectIsAuthenticated = (state: { auth: IAuthState }) =>
+  state.auth.isAuthenticated;

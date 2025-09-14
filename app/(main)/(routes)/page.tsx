@@ -16,10 +16,10 @@ export default function Home() {
     <>
       <div className="container">
         <div className="lg:min-h-[25vh] grid grid-cols-12">
-          <div className="hidden lg:block h-full col-span-3 py-2 border-r">
+          {/* <div className="hidden lg:block h-full col-span-3 py-2 border-r">
             <Categories />
-          </div>
-          <div className="h-full col-span-12 lg:col-span-9 p-0 lg:p-4 pt-4">
+          </div> */}
+          <div className="h-full col-span-12 lg:col-span-12 p-0 lg:p-4 pt-4">
             <HeroBanner />
           </div>
         </div>
