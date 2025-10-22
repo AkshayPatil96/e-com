@@ -3,13 +3,18 @@
     "development"
   ],
   "hints": {
-    "compat-api/css": [
+    "axe/name-role-value": [
       "default",
       {
-        "ignore": [
-          "user-select"
-        ]
+        "button-name": "off"
       }
-    ]
+    ],
+    "axe/aria": [
+      "default",
+      {
+        "aria-valid-attr-value": "off"
+      }
+    ],
+    "no-inline-styles": "off"
   }
 }

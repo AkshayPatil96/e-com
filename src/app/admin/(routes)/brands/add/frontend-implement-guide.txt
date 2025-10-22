@@ -1,0 +1,795 @@
+🎯 Complete Frontend Implementation Guide
+Step 1: Setup RTK Query API Slice
+// src/store/api/brandApi.ts
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+
+// TypeScript interfaces
+interface GenerateUploadUrlsRequest {
+  fileTypes: ('logo' | 'banner')[];
+  externalUrls?: {
+    logo?: string;
+    banner?: string;
+  };
+}
+
+interface GenerateUploadUrlsResponse {
+  success: boolean;
+  data: {
+    uploadUrls: Record<string, {
+      uploadUrl: string;
+      key: string;
+      publicUrl: string;
+      fileType: string;
+      expiresAt: string;
+    }>;
+    externalResults: Record<string, any>;
+    expiresIn: number;
+    instructions: {
+      presignedUpload: {
+        method: string;
+        note: string;
+        example: string;
+      };
+    };
+  };
+}
+
+interface ProcessImagesRequest {
+  uploads: Record<string, {
+    tempKey: string;
+    filename: string;
+    originalName?: string;
+  }>;
+}
+
+interface ProcessImagesResponse {
+  success: boolean;
+  data: {
+    processedImages: Record<string, {
+      success: boolean;
+      url: string;
+      s3Key: string;
+      bucket: string;
+      width: number;
+      height: number;
+      format: string;
+      uploadMethod: string;
+      isProcessed: boolean;
+      processingStatus: string;
+      uploadedAt: string;
+      processedAt: string;
+    }>;
+    errors?: string[];
+  };
+}
+
+interface CreateBrandRequest {
+  name: string;
+  description: string;
+  shortDescription?: string;
+  logo?: any; // Processed image object or URL
+  banner?: any; // Processed image object or URL
+  businessInfo?: any;
+  socialMedia?: any;
+  seo?: any;
+  order?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  showInMenu?: boolean;
+  showInHomepage?: boolean;
+}
+
+export const brandApi = createApi({
+  reducerPath: 'brandApi',
+  baseQuery: fetchBaseQuery({
+    baseUrl: '/api/v1/admin/brands',
+    prepareHeaders: (headers, { getState }) => {
+      const token = (getState() as RootState).auth.token;
+      if (token) {
+        headers.set('authorization', `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
+  tagTypes: ['Brand'],
+  endpoints: (builder) => ({
+    // Generate presigned URLs
+    generateUploadUrls: builder.mutation<GenerateUploadUrlsResponse, GenerateUploadUrlsRequest>({
+      query: (data) => ({
+        url: '/upload-urls',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    // Process uploaded images
+    processUploadedImages: builder.mutation<ProcessImagesResponse, ProcessImagesRequest>({
+      query: (data) => ({
+        url: '/process-images',
+        method: 'POST',
+        body: data,
+      }),
+    }),
+
+    // Create brand
+    createBrand: builder.mutation<any, CreateBrandRequest>({
+      query: (data) => ({
+        url: '/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Brand'],
+    }),
+
+    // Update brand
+    updateBrand: builder.mutation<any, { id: string; data: Partial<CreateBrandRequest> }>({
+      query: ({ id, data }) => ({
+        url: `/${id}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Brand'],
+    }),
+
+    // Update logo specifically
+    updateBrandLogo: builder.mutation<any, { id: string; logoData?: any; externalUrl?: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/${id}/logo`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Brand'],
+    }),
+
+    // Update banner specifically
+    updateBrandBanner: builder.mutation<any, { id: string; bannerData?: any; externalUrl?: string }>({
+      query: ({ id, ...data }) => ({
+        url: `/${id}/banner`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: ['Brand'],
+    }),
+
+    // Get brands
+    getBrands: builder.query<any, any>({
+      query: (params) => ({
+        url: '/',
+        params,
+      }),
+      providesTags: ['Brand'],
+    }),
+
+    // Get single brand
+    getBrand: builder.query<any, string>({
+      query: (id) => `/${id}`,
+      providesTags: ['Brand'],
+    }),
+  }),
+});
+
+export const {
+  useGenerateUploadUrlsMutation,
+  useProcessUploadedImagesMutation,
+  useCreateBrandMutation,
+  useUpdateBrandMutation,
+  useUpdateBrandLogoMutation,
+  useUpdateBrandBannerMutation,
+  useGetBrandsQuery,
+  useGetBrandQuery,
+} = brandApi;
+
+///////////////////////////////////////////////////////////////////
+
+Step 2: Create Custom Hook for Brand Asset Upload
+// src/hooks/useBrandAssetUpload.ts
+import { useState } from 'react';
+import { 
+  useGenerateUploadUrlsMutation, 
+  useProcessUploadedImagesMutation 
+} from '../store/api/brandApi';
+
+interface UploadProgress {
+  stage: 'idle' | 'generating-urls' | 'uploading-to-s3' | 'processing-images' | 'complete' | 'error';
+  progress: number;
+  message: string;
+  error?: string;
+}
+
+interface UploadAssets {
+  logo?: File;
+  banner?: File;
+  externalUrls?: {
+    logo?: string;
+    banner?: string;
+  };
+}
+
+export const useBrandAssetUpload = () => {
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({
+    stage: 'idle',
+    progress: 0,
+    message: '',
+  });
+
+  const [generateUrls] = useGenerateUploadUrlsMutation();
+  const [processImages] = useProcessUploadedImagesMutation();
+
+  const uploadAssets = async (assets: UploadAssets) => {
+    try {
+      // Step 1: Generate upload URLs
+      setUploadProgress({
+        stage: 'generating-urls',
+        progress: 10,
+        message: 'Generating upload URLs...',
+      });
+
+      const fileTypes: ('logo' | 'banner')[] = [];
+      if (assets.logo) fileTypes.push('logo');
+      if (assets.banner) fileTypes.push('banner');
+
+      const urlResponse = await generateUrls({
+        fileTypes,
+        externalUrls: assets.externalUrls,
+      }).unwrap();
+
+      // Step 2: Upload files to S3 using presigned URLs
+      setUploadProgress({
+        stage: 'uploading-to-s3',
+        progress: 30,
+        message: 'Uploading files to S3...',
+      });
+
+      const uploadPromises: Promise<any>[] = [];
+      const uploadedAssets: Record<string, any> = {};
+
+      // Upload logo if provided and URL generated
+      if (assets.logo && urlResponse.data.uploadUrls.logo && !urlResponse.data.uploadUrls.logo.error) {
+        const logoUpload = fetch(urlResponse.data.uploadUrls.logo.uploadUrl, {
+          method: 'PUT',
+          body: assets.logo,
+          headers: {
+            'Content-Type': assets.logo.type,
+          },
+        }).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Logo upload failed: ${response.statusText}`);
+          }
+          uploadedAssets.logo = {
+            tempKey: urlResponse.data.uploadUrls.logo.key,
+            filename: assets.logo!.name,
+            originalName: assets.logo!.name,
+          };
+        });
+        uploadPromises.push(logoUpload);
+      }
+
+      // Upload banner if provided and URL generated
+      if (assets.banner && urlResponse.data.uploadUrls.banner && !urlResponse.data.uploadUrls.banner.error) {
+        const bannerUpload = fetch(urlResponse.data.uploadUrls.banner.uploadUrl, {
+          method: 'PUT',
+          body: assets.banner,
+          headers: {
+            'Content-Type': assets.banner.type,
+          },
+        }).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Banner upload failed: ${response.statusText}`);
+          }
+          uploadedAssets.banner = {
+            tempKey: urlResponse.data.uploadUrls.banner.key,
+            filename: assets.banner!.name,
+            originalName: assets.banner!.name,
+          };
+        });
+        uploadPromises.push(bannerUpload);
+      }
+
+      // Wait for all S3 uploads to complete
+      await Promise.all(uploadPromises);
+
+      // Step 3: Process uploaded images (move from temp to permanent location)
+      setUploadProgress({
+        stage: 'processing-images',
+        progress: 70,
+        message: 'Processing and optimizing images...',
+      });
+
+      let processedResults: any = {};
+      if (Object.keys(uploadedAssets).length > 0) {
+        const processResponse = await processImages({
+          uploads: uploadedAssets,
+        }).unwrap();
+
+        if (!processResponse.success) {
+          throw new Error('Image processing failed');
+        }
+
+        processedResults = processResponse.data.processedImages;
+      }
+
+      // Step 4: Combine processed uploads with external URL results
+      const finalAssets: Record<string, any> = {};
+
+      // Add processed uploads
+      Object.entries(processedResults).forEach(([type, data]) => {
+        finalAssets[type] = data;
+      });
+
+      // Add external URL results
+      const externalResults = urlResponse.data.externalResults || {};
+      Object.entries(externalResults).forEach(([type, result]: [string, any]) => {
+        if (result.success) {
+          finalAssets[type] = {
+            url: result.url,
+            s3Key: result.s3Key,
+            uploadMethod: 'external_url',
+            ...result.metadata,
+          };
+        }
+      });
+
+      setUploadProgress({
+        stage: 'complete',
+        progress: 100,
+        message: 'Upload complete!',
+      });
+
+      return {
+        success: true,
+        data: finalAssets,
+      };
+
+    } catch (error: any) {
+      setUploadProgress({
+        stage: 'error',
+        progress: 0,
+        message: 'Upload failed',
+        error: error.message || 'Unknown error occurred',
+      });
+      throw error;
+    }
+  };
+
+  const resetProgress = () => {
+    setUploadProgress({
+      stage: 'idle',
+      progress: 0,
+      message: '',
+    });
+  };
+
+  return {
+    uploadAssets,
+    uploadProgress,
+    resetProgress,
+    isUploading: uploadProgress.stage !== 'idle' && uploadProgress.stage !== 'complete' && uploadProgress.stage !== 'error',
+    isComplete: uploadProgress.stage === 'complete',
+    hasError: uploadProgress.stage === 'error',
+  };
+};
+
+///////////////////////////////////////////////////////////////////
+
+Step 3: React Component for Brand Form
+// src/components/BrandForm.tsx
+import React, { useState } from 'react';
+import { useCreateBrandMutation, useUpdateBrandMutation } from '../store/api/brandApi';
+import { useBrandAssetUpload } from '../hooks/useBrandAssetUpload';
+
+interface BrandFormProps {
+  brandId?: string;
+  initialData?: any;
+  onSuccess?: (brand: any) => void;
+  onCancel?: () => void;
+}
+
+export const BrandForm: React.FC<BrandFormProps> = ({ 
+  brandId, 
+  initialData, 
+  onSuccess, 
+  onCancel 
+}) => {
+  // Form state
+  const [formData, setFormData] = useState({
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    shortDescription: initialData?.shortDescription || '',
+    order: initialData?.order || 0,
+    isActive: initialData?.isActive ?? true,
+    isFeatured: initialData?.isFeatured ?? false,
+    showInMenu: initialData?.showInMenu ?? true,
+    showInHomepage: initialData?.showInHomepage ?? false,
+  });
+
+  // File upload state
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [externalUrls, setExternalUrls] = useState({
+    logo: '',
+    banner: '',
+  });
+
+  // RTK Query mutations
+  const [createBrand, { isLoading: isCreating }] = useCreateBrandMutation();
+  const [updateBrand, { isLoading: isUpdating }] = useUpdateBrandMutation();
+
+  // Custom upload hook
+  const { uploadAssets, uploadProgress, isUploading, resetProgress } = useBrandAssetUpload();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      let processedAssets: any = {};
+
+      // Step 1: Upload assets if any are provided
+      const hasAssets = logoFile || bannerFile || externalUrls.logo || externalUrls.banner;
+      
+      if (hasAssets) {
+        const uploadResult = await uploadAssets({
+          logo: logoFile || undefined,
+          banner: bannerFile || undefined,
+          externalUrls: {
+            logo: externalUrls.logo || undefined,
+            banner: externalUrls.banner || undefined,
+          },
+        });
+
+        processedAssets = uploadResult.data;
+      }
+
+      // Step 2: Prepare brand data
+      const brandData = {
+        ...formData,
+        logo: processedAssets.logo || initialData?.logo,
+        banner: processedAssets.banner || initialData?.banner,
+      };
+
+      // Step 3: Create or update brand
+      let result;
+      if (brandId) {
+        result = await updateBrand({ id: brandId, data: brandData }).unwrap();
+      } else {
+        result = await createBrand(brandData).unwrap();
+      }
+
+      // Reset form
+      resetProgress();
+      onSuccess?.(result.data);
+
+    } catch (error: any) {
+      console.error('Brand save failed:', error);
+      alert(`Failed to ${brandId ? 'update' : 'create'} brand: ${error.message}`);
+    }
+  };
+
+  const handleFileChange = (type: 'logo' | 'banner', file: File | null) => {
+    if (type === 'logo') {
+      setLogoFile(file);
+      if (file) setExternalUrls(prev => ({ ...prev, logo: '' })); // Clear external URL
+    } else {
+      setBannerFile(file);
+      if (file) setExternalUrls(prev => ({ ...prev, banner: '' })); // Clear external URL
+    }
+  };
+
+  const handleExternalUrlChange = (type: 'logo' | 'banner', url: string) => {
+    setExternalUrls(prev => ({ ...prev, [type]: url }));
+    if (url) {
+      // Clear file input if external URL is provided
+      if (type === 'logo') setLogoFile(null);
+      else setBannerFile(null);
+    }
+  };
+
+  const isSubmitting = isCreating || isUpdating || isUploading;
+
+  return (
+    <div className="brand-form">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4">Basic Information</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Brand Name *
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                maxLength={100}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Enter brand name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="order" className="block text-sm font-medium text-gray-700">
+                Display Order
+              </label>
+              <input
+                id="order"
+                type="number"
+                value={formData.order}
+                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                min={0}
+                max={9999}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              Description *
+            </label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              required
+              maxLength={2000}
+              rows={4}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Enter brand description"
+            />
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700">
+              Short Description
+            </label>
+            <textarea
+              id="shortDescription"
+              value={formData.shortDescription}
+              onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
+              maxLength={300}
+              rows={2}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              placeholder="Brief description for cards"
+            />
+          </div>
+        </div>
+
+        {/* Logo Upload */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4">Brand Logo</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Upload Logo File</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => handleFileChange('logo', e.target.files?.[0] || null)}
+                className="mt-1 block w-full"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Max 5MB, will be automatically resized to 300×300 and converted to WebP
+              </p>
+            </div>
+
+            <div className="text-center text-gray-500">OR</div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">External Logo URL</label>
+              <input
+                type="url"
+                value={externalUrls.logo}
+                onChange={(e) => handleExternalUrlChange('logo', e.target.value)}
+                placeholder="https://example.com/logo.png"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Image will be downloaded and processed automatically
+              </p>
+            </div>
+
+            {(logoFile || externalUrls.logo) && (
+              <div className="mt-2 p-2 bg-green-50 rounded">
+                <p className="text-sm text-green-700">
+                  {logoFile ? `File selected: ${logoFile.name}` : `External URL: ${externalUrls.logo}`}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Banner Upload */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4">Brand Banner</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Upload Banner File</label>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => handleFileChange('banner', e.target.files?.[0] || null)}
+                className="mt-1 block w-full"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Max 10MB, will be automatically resized to 1200×400 and converted to WebP
+              </p>
+            </div>
+
+            <div className="text-center text-gray-500">OR</div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">External Banner URL</label>
+              <input
+                type="url"
+                value={externalUrls.banner}
+                onChange={(e) => handleExternalUrlChange('banner', e.target.value)}
+                placeholder="https://example.com/banner.png"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Image will be downloaded and processed automatically
+              </p>
+            </div>
+
+            {(bannerFile || externalUrls.banner) && (
+              <div className="mt-2 p-2 bg-green-50 rounded">
+                <p className="text-sm text-green-700">
+                  {bannerFile ? `File selected: ${bannerFile.name}` : `External URL: ${externalUrls.banner}`}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h3 className="text-lg font-medium mb-4">Settings</h3>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span className="ml-2 text-sm">Active</span>
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isFeatured}
+                onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span className="ml-2 text-sm">Featured</span>
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.showInMenu}
+                onChange={(e) => setFormData({ ...formData, showInMenu: e.target.checked })}
+                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span className="ml-2 text-sm">Show in Menu</span>
+            </label>
+
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.showInHomepage}
+                onChange={(e) => setFormData({ ...formData, showInHomepage: e.target.checked })}
+                className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+              <span className="ml-2 text-sm">Show on Homepage</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Upload Progress */}
+        {isUploading && (
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-blue-900">{uploadProgress.message}</span>
+              <span className="text-sm text-blue-700">{uploadProgress.progress}%</span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${uploadProgress.progress}%` }}
+              />
+            </div>
+            <div className="mt-2 text-xs text-blue-600">
+              Stage: {uploadProgress.stage.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {uploadProgress.stage === 'error' && (
+          <div className="bg-red-50 p-4 rounded-lg">
+            <p className="text-sm text-red-800">
+              <strong>Upload Error:</strong> {uploadProgress.error}
+            </p>
+          </div>
+        )}
+
+        {/* Form Actions */}
+        <div className="flex justify-end space-x-3 pt-6 border-t">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {isUploading ? uploadProgress.message : `${brandId ? 'Updating' : 'Creating'}...`}
+              </>
+            ) : (
+              `${brandId ? 'Update' : 'Create'} Brand`
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+///////////////////////////////////////////////////////////////////
+
+🎯 Complete Flow Explanation
+Step-by-Step Process:
+Frontend Form Submission:
+
+User fills form and selects files or enters external URLs
+Form validation happens on frontend
+Generate Upload URLs (API Call #1):
+POST /admin/brands/upload-urls
+Body: { 
+  fileTypes: ['logo', 'banner'],
+  externalUrls: { logo: 'https://...', banner: 'https://...' }
+}
+
+Direct S3 Upload:
+
+Frontend uploads files directly to S3 using presigned URLs
+No server bandwidth used for file transfer
+External URLs processed server-side immediately
+Process Images (API Call #2):
+POST /admin/brands/process-images
+Body: {
+  uploads: {
+    logo: { tempKey: 'brands/temp/...', filename: 'logo.jpg' },
+    banner: { tempKey: 'brands/temp/...', filename: 'banner.jpg' }
+  }
+}
+
+Create/Update Brand (API Call #3):
+POST /admin/brands (or PUT /admin/brands/:id)
+Body: {
+  name: 'Nike',
+  description: '...',
+  logo: { url: '...', s3Key: '...', ... }, // Processed image object
+  banner: { url: '...', s3Key: '...', ... }
+}
+
+Key Benefits:
+✅ Performance: Direct S3 upload, no server bottleneck ✅ Reliability: Three-step process with error handling at each stage ✅ Flexibility: Supports both file uploads and external URLs ✅ Optimization: Automatic image resizing and WebP conversion ✅ Security: Time-limited presigned URLs ✅ User Experience: Real-time progress tracking

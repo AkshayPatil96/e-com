@@ -1,0 +1,189 @@
+📋 Brand Form Structure Table
+Field Name	Type	Required	Validation Rules	Enum/Options	Default Value	Frontend Component	Description
+🔥 Basic Information (Required Section)
+| name | string | ✅ Yes | Min: 2, Max: 100 chars, Unique, Trim | N/A | N/A | Text Input | Brand name (e.g., "Nike", "Adidas") | | description | string | ✅ Yes | Max: 2000 chars, Trim | N/A | N/A | Textarea | Full brand description | | shortDescription | string | 🟡 Optional | Max: 300 chars, Trim | N/A | "" | Textarea | Brief description for cards |
+
+🎨 Visual Assets (Optional Section)
+| logo | File/string | 🟡 Optional | Image URL or File upload | jpg, jpeg, png, gif, webp | null | Image Upload | Brand logo image | | banner | File/string | 🟡 Optional | Image URL or File upload | jpg, jpeg, png, gif, webp | null | Image Upload | Brand banner image |
+
+🏢 Business Information (Optional Section)
+| businessInfo.foundingYear | number | 🟡 Optional | Min: 1800, Max: Current Year | N/A | undefined | Number Input | Year brand was founded | | businessInfo.originCountry | string | 🟡 Optional | Max: 100 chars, Trim | Country List | "" | Country Select | Country of origin | | businessInfo.headquarters | string | 🟡 Optional | Max: 200 chars, Trim | N/A | "" | Text Input | Headquarters location | | businessInfo.parentCompany | string | 🟡 Optional | Max: 100 chars, Trim | N/A | "" | Text Input | Parent company name | | businessInfo.legalName | string | 🟡 Optional | Max: 200 chars, Trim | N/A | "" | Text Input | Legal business name | | businessInfo.registrationNumber | string | 🟡 Optional | Max: 50 chars, Trim | N/A | "" | Text Input | Business registration number | | businessInfo.taxId | string | 🟡 Optional | Max: 50 chars, Trim | N/A | "" | Text Input | Tax identification number |
+
+🌐 Social Media (Optional Section)
+| socialMedia.website | string | 🟡 Optional | Valid URL format | N/A | "" | URL Input | Official website | | socialMedia.facebook | string | 🟡 Optional | Facebook URL format | N/A | "" | URL Input | Facebook page URL | | socialMedia.instagram | string | 🟡 Optional | Instagram URL format | N/A | "" | URL Input | Instagram profile URL | | socialMedia.twitter | string | 🟡 Optional | Twitter/X URL format | N/A | "" | URL Input | Twitter/X profile URL | | socialMedia.linkedin | string | 🟡 Optional | LinkedIn URL format | N/A | "" | URL Input | LinkedIn company page | | socialMedia.youtube | string | 🟡 Optional | YouTube URL format | N/A | "" | URL Input | YouTube channel URL | | socialMedia.tiktok | string | 🟡 Optional | TikTok URL format | N/A | "" | URL Input | TikTok profile URL |
+
+🔍 SEO Fields (Optional Section)
+| seo.metaTitle | string | 🟡 Optional | Max: 60 chars | N/A | "" | Text Input | SEO meta title | | seo.metaDescription | string | 🟡 Optional | Max: 160 chars | N/A | "" | Textarea | SEO meta description | | seo.metaKeywords | string[] | 🟡 Optional | Max: 20 keywords | N/A | [] | Tag Input | SEO keywords array |
+
+⚙️ Display Settings (Optional Section)
+| order | number | 🟡 Optional | Min: 0, Max: 9999 | N/A | 0 | Number Input | Display order for sorting | | isActive | boolean | 🟡 Optional | Boolean validation | true, false | true | Toggle Switch | Active/Inactive status | | isFeatured | boolean | 🟡 Optional | Boolean validation | true, false | false | Toggle Switch | Featured brand status | | showInMenu | boolean | 🟡 Optional | Boolean validation | true, false | true | Toggle Switch | Show in navigation menu | | showInHomepage | boolean | 🟡 Optional | Boolean validation | true, false | false | Toggle Switch | Display on homepage |
+
+🎯 Frontend Form Implementation
+Complete Form Payload Structure:
+interface BrandFormPayload {
+  // Basic Information (Required)
+  name: string;                    // ✅ Required
+  description: string;             // ✅ Required
+  shortDescription?: string;       // Optional
+  
+  // Visual Assets (Optional)
+  logo?: File | string;            // Image upload or URL
+  banner?: File | string;          // Image upload or URL
+  
+  // Business Information (Optional)
+  businessInfo?: {
+    foundingYear?: number;         // 1800 - current year
+    originCountry?: string;        // Country select
+    headquarters?: string;         // Text input
+    parentCompany?: string;        // Text input
+    legalName?: string;            // Text input
+    registrationNumber?: string;   // Text input
+    taxId?: string;                // Text input
+  };
+  
+  // Social Media (Optional)
+  socialMedia?: {
+    website?: string;              // URL validation
+    facebook?: string;             // Facebook URL validation
+    instagram?: string;            // Instagram URL validation
+    twitter?: string;              // Twitter URL validation
+    linkedin?: string;             // LinkedIn URL validation
+    youtube?: string;              // YouTube URL validation
+    tiktok?: string;               // TikTok URL validation
+  };
+  
+  // SEO (Optional)
+  seo?: {
+    metaTitle?: string;            // Max 60 chars
+    metaDescription?: string;      // Max 160 chars
+    metaKeywords?: string[];       // Tag input, max 20
+  };
+  
+  // Display Settings (Optional)
+  order?: number;                  // 0-9999
+  isActive?: boolean;              // Default: true
+  isFeatured?: boolean;            // Default: false
+  showInMenu?: boolean;            // Default: true
+  showInHomepage?: boolean;        // Default: false
+}
+
+
+Form Validation Rules:
+const BrandFormValidation = {
+  // Required Fields
+  name: {
+    required: true,
+    minLength: 2,
+    maxLength: 100,
+    pattern: /^[a-zA-Z0-9\s'&.-]+$/, // Allow common brand name characters
+  },
+  description: {
+    required: true,
+    maxLength: 2000,
+  },
+  
+  // Optional Field Limits
+  shortDescription: { maxLength: 300 },
+  'businessInfo.foundingYear': { 
+    min: 1800, 
+    max: new Date().getFullYear() 
+  },
+  'businessInfo.originCountry': { maxLength: 100 },
+  'businessInfo.headquarters': { maxLength: 200 },
+  'businessInfo.parentCompany': { maxLength: 100 },
+  'businessInfo.legalName': { maxLength: 200 },
+  'businessInfo.registrationNumber': { maxLength: 50 },
+  'businessInfo.taxId': { maxLength: 50 },
+  
+  // SEO Limits
+  'seo.metaTitle': { maxLength: 60 },
+  'seo.metaDescription': { maxLength: 160 },
+  'seo.metaKeywords': { maxItems: 20 },
+  
+  // Display Settings
+  order: { min: 0, max: 9999 },
+  
+  // URL Validations
+  'socialMedia.website': { pattern: /^https?:\/\/.+/ },
+  'socialMedia.facebook': { pattern: /^https?:\/\/(www\.)?facebook\.com\/.+/ },
+  'socialMedia.instagram': { pattern: /^https?:\/\/(www\.)?instagram\.com\/.+/ },
+  'socialMedia.twitter': { pattern: /^https?:\/\/(www\.)?(twitter\.com|x\.com)\/.+/ },
+  'socialMedia.linkedin': { pattern: /^https?:\/\/(www\.)?linkedin\.com\/.+/ },
+  'socialMedia.youtube': { pattern: /^https?:\/\/(www\.)?youtube\.com\/.+/ },
+  'socialMedia.tiktok': { pattern: /^https?:\/\/(www\.)?tiktok\.com\/.+/ },
+};
+
+
+Form Sections for UI:
+const FormSections = [
+  {
+    title: "Basic Information",
+    required: true,
+    fields: ["name", "description", "shortDescription"]
+  },
+  {
+    title: "Visual Assets", 
+    required: false,
+    fields: ["logo", "banner"]
+  },
+  {
+    title: "Business Information",
+    required: false,
+    collapsible: true,
+    fields: ["businessInfo.*"]
+  },
+  {
+    title: "Social Media",
+    required: false,
+    collapsible: true,
+    fields: ["socialMedia.*"]
+  },
+  {
+    title: "SEO Settings",
+    required: false,
+    collapsible: true,
+    fields: ["seo.*"]
+  },
+  {
+    title: "Display Settings",
+    required: false,
+    fields: ["order", "isActive", "isFeatured", "showInMenu", "showInHomepage"]
+  }
+];
+
+
+Minimum Required Payload:
+// Absolute minimum for creating a brand
+const MinimumPayload = {
+  name: "Nike",
+  description: "Athletic wear and footwear brand"
+};
+
+
+Complete Example Payload:
+const CompletePayload = {
+  name: "Nike",
+  description: "Leading athletic wear and footwear brand",
+  shortDescription: "Athletic wear & footwear",
+  logo: "https://example.com/nike-logo.png",
+  businessInfo: {
+    foundingYear: 1964,
+    originCountry: "United States",
+    headquarters: "Beaverton, Oregon"
+  },
+  socialMedia: {
+    website: "https://www.nike.com",
+    instagram: "https://instagram.com/nike"
+  },
+  seo: {
+    metaTitle: "Nike - Athletic Wear & Footwear",
+    metaDescription: "Shop Nike athletic wear, footwear and sports equipment.",
+    metaKeywords: ["nike", "athletic wear", "footwear"]
+  },
+  isActive: true,
+  isFeatured: true,
+  showInHomepage: true,
+  order: 1
+};
+
+This structure provides everything needed for a comprehensive brand creation/editing form in the frontend! 🚀

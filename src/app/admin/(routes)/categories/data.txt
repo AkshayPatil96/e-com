@@ -1,0 +1,559 @@
+Query Parameters JSON Structure
+{
+  "page": 1,
+  "limit": 20,
+  "search": "",
+  "status": "all",
+  "featured": "all",
+  "parent": "all",
+  "level": null,
+  "isDeleted": false,
+  "sortBy": "order",
+  "sortOrder": "asc",
+  "showInMenu": undefined,
+  "showInHomepage": undefined
+}
+
+ // Enum definitions for query parameters
+enum CategoryStatus {
+  ALL = "all",
+  ACTIVE = "active", 
+  INACTIVE = "inactive"
+}
+
+enum CategoryFeatured {
+  ALL = "all",
+  FEATURED = "featured",
+  NOT_FEATURED = "not-featured"
+}
+
+enum CategorySortBy {
+  NAME = "name",
+  CREATED_AT = "createdAt",
+  ORDER = "order",
+  PRODUCT_COUNT = "productCount",
+  VIEW_COUNT = "viewCount"
+}
+
+enum SortOrder {
+  ASC = "asc",
+  DESC = "desc"
+}
+
+// Complete interface
+interface CategoryAdminQueryParams {
+  page?: number;              // Min: 1, Max: ∞, Default: 1
+  limit?: number;             // Min: 1, Max: 100, Default: 20
+  search?: string;            // Max length: 100 chars, Default: ""
+  status?: CategoryStatus;    // Default: "all"
+  featured?: CategoryFeatured; // Default: "all"
+  parent?: string;            // ObjectId or "all", Default: "all"
+  level?: number | null;      // Min: 0, Default: null
+  isDeleted?: boolean;        // Default: false
+  sortBy?: CategorySortBy;    // Default: "order"
+  sortOrder?: SortOrder;      // Default: "asc"
+  showInMenu?: boolean;       // Optional filter
+  showInHomepage?: boolean;   // Optional filter
+}
+
+// Example query objects
+const basicQuery = {
+  page: 1,
+  limit: 20
+};
+
+const searchQuery = {
+  page: 1,
+  limit: 50,
+  search: "electronics",
+  status: "active",
+  sortBy: "createdAt",
+  sortOrder: "desc"
+};
+
+const filterQuery = {
+  page: 2,
+  limit: 25,
+  status: "active",
+  featured: "featured", 
+  parent: "64f7b8a9c8e4d1234567890a",
+  level: 1,
+  showInMenu: true,
+  sortBy: "name",
+  sortOrder: "asc"
+};
+
+const deletedCategoriesQuery = {
+  page: 1,
+  limit: 10,
+  isDeleted: true,
+  sortBy: "createdAt",
+  sortOrder: "desc"
+};
+
+
+React Hook Example
+const useCategoryFilters = () => {
+  const [filters, setFilters] = useState<CategoryAdminQueryParams>({
+    page: 1,
+    limit: 20,
+    search: "",
+    status: CategoryStatus.ALL,
+    featured: CategoryFeatured.ALL,
+    parent: "all",
+    level: null,
+    isDeleted: false,
+    sortBy: CategorySortBy.ORDER,
+    sortOrder: SortOrder.ASC
+  });
+
+  const updateFilter = (key: keyof CategoryAdminQueryParams, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value, page: 1 })); // Reset to page 1
+  };
+
+  return { filters, updateFilter };
+};
+
+
+API Call Function
+const fetchCategories = async (params: CategoryAdminQueryParams) => {
+  // Remove undefined values
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, value]) => value !== undefined)
+  );
+  
+  const queryString = new URLSearchParams(
+    Object.entries(cleanParams).map(([key, value]) => [key, String(value)])
+  ).toString();
+
+  const response = await fetch(`/api/v1/admin/categories?${queryString}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  return response.json();
+};
+
+
+Validation Schema (Zod Example)
+import { z } from 'zod';
+
+const CategoryQuerySchema = z.object({
+  page: z.number().min(1).optional().default(1),
+  limit: z.number().min(1).max(100).optional().default(20),
+  search: z.string().max(100).optional().default(""),
+  status: z.nativeEnum(CategoryStatus).optional().default(CategoryStatus.ALL),
+  featured: z.nativeEnum(CategoryFeatured).optional().default(CategoryFeatured.ALL),
+  parent: z.string().optional().default("all"),
+  level: z.number().min(0).nullable().optional(),
+  isDeleted: z.boolean().optional().default(false),
+  sortBy: z.nativeEnum(CategorySortBy).optional().default(CategorySortBy.ORDER),
+  sortOrder: z.nativeEnum(SortOrder).optional().default(SortOrder.ASC),
+  showInMenu: z.boolean().optional(),
+  showInHomepage: z.boolean().optional()
+});
+
+
+
+Category Object Types
+// Basic Category object that frontend receives
+interface ICategory {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  shortDescription?: string;
+  image?: string;
+  icon?: string;
+  parentId?: string | null;
+  level: number;
+  order: number;
+  isActive: boolean;
+  isFeatured: boolean;
+  showInMenu: boolean;
+  showInHomepage: boolean;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string[];
+  isDeleted: boolean;
+  productCount?: number;
+  viewCount?: number;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+  createdBy: string; // User ID
+  updatedBy?: string; // User ID
+}
+
+// Extended category with populated fields (for admin panel)
+interface ICategoryAdmin extends ICategory {
+  parent?: {
+    _id: string;
+    name: string;
+    slug: string;
+  } | null;
+  children?: ICategoryAdmin[];
+  createdByUser?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  updatedByUser?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+// Category hierarchy structure
+interface ICategoryHierarchy extends ICategory {
+  children: ICategoryHierarchy[];
+  parent?: {
+    _id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
+
+// Category statistics response
+interface ICategoryStatistics {
+  totalCategories: number;
+  activeCategories: number;
+  inactiveCategories: number;
+  deletedCategories: number;
+  featuredCategories: number;
+  categoriesWithProducts: number;
+  categoriesWithoutProducts: number;
+  topLevelCategories: number;
+  averageProductsPerCategory: number;
+  categoryLevels: {
+    level: number;
+    count: number;
+  }[];
+  recentlyCreated: {
+    _id: string;
+    name: string;
+    createdAt: string;
+  }[];
+  mostViewedCategories: {
+    _id: string;
+    name: string;
+    viewCount: number;
+  }[];
+}
+
+// API Response wrappers
+interface ICategoryResponse {
+  success: boolean;
+  message: string;
+  data: ICategory;
+}
+
+interface ICategoryListResponse {
+  success: boolean;
+  message: string;
+  data: {
+    data: ICategoryAdmin[];
+    totalPages: number;
+    totalCount: number;
+    currentPage: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+    limit: number;
+  };
+}
+
+interface ICategoryHierarchyResponse {
+  success: boolean;
+  message: string;
+  data: ICategoryHierarchy[];
+}
+
+interface ICategoryStatisticsResponse {
+  success: boolean;
+  message: string;
+  data: ICategoryStatistics;
+}
+
+// Bulk action response
+interface IBulkActionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    action: string;
+    total: number;
+    success: number;
+    failed: number;
+    errors: string[];
+    completedAt: string;
+  };
+}
+
+// Move category response
+interface IMoveResponse {
+  success: boolean;
+  message: string;
+  data: {
+    categoryId: string;
+    newParentId?: string;
+    newOrder?: number;
+    movedAt: string;
+    category: ICategoryAdmin;
+  };
+}
+
+// Delete/Restore response
+interface IDeleteRestoreResponse {
+  success: boolean;
+  message: string;
+  data: {
+    categoryId: string;
+    deletedAt?: string;
+    restoredAt?: string;
+    category?: ICategoryAdmin;
+  };
+}
+
+// Toggle status response
+interface IToggleStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    categoryId: string;
+    isActive: boolean;
+    toggledAt: string;
+  };
+}
+
+
+
+
+Frontend Usage Examples
+// Example usage in React/TypeScript
+const CategoryList: React.FC = () => {
+  const [categories, setCategories] = useState<ICategoryAdmin[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  
+  const fetchCategories = async (filters: ICategoryAdminFilters) => {
+    const response: ICategoryListResponse = await categoryAPI.getAll(filters);
+    setCategories(response.data.data);
+    setPagination({
+      totalPages: response.data.totalPages,
+      currentPage: response.data.currentPage,
+      totalCount: response.data.totalCount,
+    });
+  };
+
+  return (
+    <div>
+      {categories.map((category: ICategoryAdmin) => (
+        <div key={category._id}>
+          <h3>{category.name}</h3>
+          <p>{category.description}</p>
+          <span>Products: {category.productCount || 0}</span>
+          <span>Status: {category.isActive ? 'Active' : 'Inactive'}</span>
+          {category.parent && <span>Parent: {category.parent.name}</span>}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// Category hierarchy example
+const CategoryTree: React.FC = () => {
+  const [hierarchy, setHierarchy] = useState<ICategoryHierarchy[]>([]);
+  
+  const fetchHierarchy = async () => {
+    const response: ICategoryHierarchyResponse = await categoryAPI.getHierarchy();
+    setHierarchy(response.data);
+  };
+
+  const renderCategory = (category: ICategoryHierarchy) => (
+    <div key={category._id} style={{ marginLeft: category.level * 20 }}>
+      <span>{category.name}</span>
+      {category.children.map(renderCategory)}
+    </div>
+  );
+
+  return <div>{hierarchy.map(renderCategory)}</div>;
+};
+
+// Statistics dashboard example
+const CategoryStats: React.FC = () => {
+  const [stats, setStats] = useState<ICategoryStatistics | null>(null);
+  
+  const fetchStats = async () => {
+    const response: ICategoryStatisticsResponse = await categoryAPI.getStatistics();
+    setStats(response.data);
+  };
+
+  return (
+    <div>
+      {stats && (
+        <>
+          <div>Total Categories: {stats.totalCategories}</div>
+          <div>Active: {stats.activeCategories}</div>
+          <div>Featured: {stats.featuredCategories}</div>
+          <div>Avg Products per Category: {stats.averageProductsPerCategory}</div>
+        </>
+      )}
+    </div>
+  );
+};
+
+
+
+API Response Examples
+// GET /admin/categories response
+{
+  "success": true,
+  "message": "Categories retrieved successfully",
+  "data": {
+    "data": [
+      {
+        "_id": "64f7b8a9c8e4d1234567890a",
+        "name": "Electronics",
+        "slug": "electronics",
+        "description": "All electronic items",
+        "level": 0,
+        "order": 1,
+        "isActive": true,
+        "isFeatured": true,
+        "showInMenu": true,
+        "showInHomepage": true,
+        "productCount": 25,
+        "viewCount": 150,
+        "createdAt": "2023-09-05T10:30:00.000Z",
+        "updatedAt": "2023-09-27T14:20:00.000Z",
+        "parent": null,
+        "children": []
+      }
+    ],
+    "totalPages": 5,
+    "totalCount": 95,
+    "currentPage": 1,
+    "hasNextPage": true,
+    "hasPreviousPage": false,
+    "limit": 20
+  }
+}
+
+// GET /admin/categories/statistics response
+{
+  "success": true,
+  "message": "Category statistics retrieved successfully",
+  "data": {
+    "totalCategories": 95,
+    "activeCategories": 80,
+    "inactiveCategories": 15,
+    "featuredCategories": 12,
+    "topLevelCategories": 8,
+    "averageProductsPerCategory": 15.2,
+    "categoryLevels": [
+      { "level": 0, "count": 8 },
+      { "level": 1, "count": 25 },
+      { "level": 2, "count": 62 }
+    ]
+  }
+}
+
+
+
+// API endpoints list with method, path, and purpose
+const categoryAdminAPIs = [
+  // 1. List & View APIs
+  {
+    method: "GET",
+    path: "/api/v1/admin/categories",
+    name: "getAllCategoriesAdmin",
+    purpose: "Get paginated category list with filters",
+    frontend_use: "Category list page, data table"
+  },
+  
+  {
+    method: "GET", 
+    path: "/api/v1/admin/categories/:id",
+    name: "getCategoryByIdAdmin",
+    purpose: "Get single category details",
+    frontend_use: "Category detail view, edit form"
+  },
+
+  {
+    method: "GET",
+    path: "/api/v1/admin/categories/hierarchy", 
+    name: "getCategoryHierarchy",
+    purpose: "Get tree structure of categories",
+    frontend_use: "Tree view, drag-drop interface, parent selector"
+  },
+
+  {
+    method: "GET",
+    path: "/api/v1/admin/categories/statistics",
+    name: "getCategoryStatistics", 
+    purpose: "Get dashboard statistics",
+    frontend_use: "Admin dashboard, analytics cards"
+  },
+
+  // 2. CRUD Operations
+  {
+    method: "POST",
+    path: "/api/v1/admin/categories",
+    name: "createCategory",
+    purpose: "Create new category", 
+    frontend_use: "Add category form/modal"
+  },
+
+  {
+    method: "PUT",
+    path: "/api/v1/admin/categories/:id",
+    name: "updateCategory",
+    purpose: "Update category details",
+    frontend_use: "Edit category form/modal"
+  },
+
+  {
+    method: "DELETE", 
+    path: "/api/v1/admin/categories/:id",
+    name: "deleteCategory",
+    purpose: "Soft delete (archive) category",
+    frontend_use: "Delete button, bulk delete"
+  },
+
+  {
+    method: "PUT",
+    path: "/api/v1/admin/categories/:id/restore", 
+    name: "restoreCategory",
+    purpose: "Restore archived category",
+    frontend_use: "Restore button in deleted items view"
+  },
+
+  // 3. Status & Feature Management
+  {
+    method: "PUT",
+    path: "/api/v1/admin/categories/:id/toggle-status",
+    name: "toggleCategoryStatus", 
+    purpose: "Toggle active/inactive status",
+    frontend_use: "Status toggle switch, bulk activate/deactivate"
+  },
+
+  // 4. Organization & Structure
+  {
+    method: "PUT",
+    path: "/api/v1/admin/categories/:id/move",
+    name: "moveCategory",
+    purpose: "Move category or change order",
+    frontend_use: "Drag & drop interface, reorder functionality"
+  },
+
+  // 5. Bulk Operations
+  {
+    method: "POST", 
+    path: "/api/v1/admin/categories/bulk-action",
+    name: "bulkAction",
+    purpose: "Perform bulk actions on multiple categories",
+    frontend_use: "Bulk operations toolbar (select all, bulk actions dropdown)"
+  }
+];

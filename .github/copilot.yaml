@@ -1,0 +1,255 @@
+# GitHub Copilot Chat Configuration
+
+# This file configures GitHub Copilot Chat behavior for this repository
+# Learn more: https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-copilot
+
+# Project Context
+project_name: "Complete E-Commerce Platform"
+project_type: "Next.js TypeScript Multi-Platform Application"
+framework: "Next.js 14+ with App Router"
+language: "TypeScript"
+ui_library: "shadcn/ui with Radix UI"
+state_management: "RTK Query + Redux Toolkit"
+styling: "Tailwind CSS"
+
+# Platform Architecture
+platforms:
+  store:
+    name: "E-Commerce Store"
+    target: "Public customers"
+    design: "Mobile-first responsive"
+    authentication: "Optional (guest browsing, required for checkout)"
+    focus: "Conversion optimization, SEO, performance"
+  
+  seller:
+    name: "Seller Dashboard" 
+    target: "Sellers and vendors"
+    design: "Desktop-only (1024px+)"
+    authentication: "Required (seller role)"
+    focus: "Data visualization, workflow efficiency, analytics"
+    
+  admin:
+    name: "Admin Panel"
+    target: "Platform administrators"
+    design: "Desktop-only (1024px+)"
+    authentication: "Required (admin role + permissions)"
+    focus: "System management, advanced features, monitoring"
+
+# Architecture Patterns
+architecture:
+  pattern: "Multi-platform feature-based with route grouping"
+  folder_structure: "App Router with platform separation and _components/_types"
+  component_organization: "Global, Platform-specific, Cross-platform, Route-specific, Page-specific"
+  platforms:
+    - "src/app/(main)/ - E-commerce Store"
+    - "src/app/seller/ - Seller Dashboard" 
+    - "src/app/admin/ - Admin Panel"
+    - "/src/app/auth/ - Authentication routes"
+    - "/src/app/account/ - User account management"
+    - "src/components/store/ - Store components"
+    - "src/components/seller/ - Seller components"
+    - "src/components/admin/ - Admin components"
+    - "src/components/shared/ - Cross-platform components"
+  
+# Code Standards
+code_standards:
+  naming:
+    components: "PascalCase"
+    functions: "camelCase" 
+    files: "kebab-case"
+    constants: "UPPER_SNAKE_CASE"
+  
+  typescript:
+    strict_mode: true
+    prefer_interfaces: true
+    no_any_types: true
+    explicit_return_types: "for public APIs"
+  
+  imports:
+    order: ["react/next", "third-party", "internal", "types"]
+    absolute_paths: true
+    
+# Technology Preferences
+preferences:
+  ui_components: "Always use shadcn/ui components"
+  form_handling: "react-hook-form + Zod validation"
+  api_calls: "RTK Query with proper error handling"
+  state_management: "RTK Query for server state, React hooks for local"
+  styling: "Tailwind CSS with semantic class names"
+  icons: "Lucide React"
+  notifications: "Sonner toast"
+  
+# External Libraries vs Custom
+library_strategy:
+  use_external_for:
+    - "UI components (shadcn/ui)"
+    - "Form validation (Zod)"
+    - "Date manipulation (date-fns)"
+    - "Complex utilities (lodash debounce)"
+    - "State management (RTK Query)"
+  
+  use_custom_for:
+    - "Business logic"
+    - "Domain-specific functions"
+    - "Simple utilities (<20 lines)"
+    - "Permission handlers"
+    - "Project-specific hooks"
+
+# Security Requirements
+security:
+  authentication: "JWT with refresh tokens"
+  api_calls: "Always include credentials: 'include'"
+  permissions: "Role-based with usePermissions hook"
+  validation: "Client-side Zod + server-side validation"
+  file_uploads: "AWS S3 with presigned URLs"
+  
+# Performance Guidelines  
+performance:
+  optimization:
+    - "useMemo for expensive calculations"
+    - "useCallback for event handlers"
+    - "Code splitting with dynamic imports"
+    - "Image optimization with Next.js Image component"
+    - "Avoid unnecessary re-renders"
+    - "Debounce search inputs (300ms)"
+    - "React.memo for list items"
+    - "Lazy loading for routes"
+    - "Skeleton loaders for async content"
+    - "Prefetch critical data"
+    - "Use React.lazy for code splitting"
+    - "RTK Query caching strategies"
+    
+# Error Handling Standards
+error_handling:
+  patterns:
+    - "Try-catch for async operations"
+    - "Toast notifications for user feedback"
+    - "Error boundaries for component errors"
+    - "RTK Query error handling"
+    - "Graceful fallbacks"
+    - "User-friendly error messages"
+
+# File Organization Rules
+file_organization:
+  global_components: "src/components/ui/"
+  route_components: "src/app/[route]/_components/"
+  page_components: "src/app/[route]/[page]/_components/"
+  types: "Feature-specific in _types/ folders"
+  hooks: "src/hooks/ for global, local for feature-specific"
+  
+# Form Implementation Pattern
+form_pattern: |
+  1. Define Zod schema
+  2. Infer TypeScript types
+  3. Use react-hook-form with zodResolver
+  4. Implement handleSubmit with try-catch
+  5. Add toast notifications
+  6. Include loading states
+  
+# API Integration Pattern
+api_pattern: |
+  1. Define interfaces in _types/
+  2. Create RTK Query endpoints
+  3. Use proper TypeScript generics
+  4. Include credentials: 'include'
+  5. Add proper tag invalidation
+  6. Handle errors appropriately
+
+# Component Structure Template
+component_structure: |
+  1. Imports (React -> Third-party -> Internal -> Types)
+  2. Type definitions and interfaces
+  3. Component props interface
+  4. Component implementation:
+     - Hooks and state
+     - Effects
+     - Event handlers  
+     - Render logic
+  5. Default export arrow function
+  6. Export default Component;
+  7. Styling with Tailwind CSS classes and global styles if needed
+
+# Testing Approach
+testing:
+  focus_areas:
+    - "Permission-based rendering"
+    - "Form validation"
+    - "API error handling"
+    - "Responsive design"
+    - "Accessibility compliance"
+    
+# Common Patterns to Follow
+patterns:
+  store_patterns:
+    cart_management: "Persistent cart state with localStorage"
+    product_display: "Mobile-optimized cards with lazy loading"
+    checkout_flow: "Multi-step with guest option"
+    seo_optimization: "Meta tags, structured data, sitemap"
+    
+  seller_patterns:
+    permission_check: "const { hasPermission } = usePermissions();"
+    dashboard_layout: "Grid-based analytics with real-time updates"
+    data_tables: "Sortable, filterable with bulk actions"
+    inventory_management: "Real-time stock tracking"
+    
+  admin_patterns:
+    permission_check: "const { hasPermission } = usePermissions();"
+    system_monitoring: "Health indicators and performance metrics"
+    user_management: "Role-based access with audit logs"
+    bulk_operations: "Multi-select with confirmation dialogs"
+    
+  common_patterns:
+    form_validation: "zodResolver(schema)"
+    api_error: "toast.error() for user feedback"
+    loading_state: "isLoading prop from RTK Query"
+    responsive: "Platform-appropriate responsive classes"
+  
+# Domain-Specific Context
+domain:
+  type: "Complete E-commerce Platform"
+  store_modules:
+    - "Product Catalog (search, filters, categories)"
+    - "Shopping Cart (persistent, guest support)"
+    - "Checkout Process (multiple payments, guest checkout)"
+    - "User Accounts (registration, profiles, order history)"
+    - "Wishlist and Favorites"
+    - "Reviews and Ratings"
+    
+  seller_modules:
+    - "Inventory Management (products, variants, stock)"
+    - "Order Processing (status updates, shipping)"
+    - "Analytics Dashboard (sales, performance metrics)"
+    - "Store Management (profile, policies, settings)"
+    - "Customer Communication"
+    - "Revenue Tracking"
+    
+  admin_modules:
+    - "User Management (admins, sellers, customers)"
+    - "Product Management (oversight, categories, brands)"
+    - "Seller Management (verification, commission)"
+    - "Order Management (platform-wide monitoring)"
+    - "Financial Management (payouts, commissions)"
+    - "System Settings & Configuration"
+    - "Analytics & Reporting"
+    - "Security & Audit Logs"
+  
+  business_rules:
+    - "Multi-tenant architecture with role separation"
+    - "Role-based permissions (customer, seller, admin)"
+    - "AWS S3 file management for all platforms"
+    - "Real-time inventory synchronization"
+    - "Commission calculation and tracking"
+    - "Multi-currency and multi-language support"
+    - "SEO optimization for public store"
+
+# Code Quality Checklist
+quality_checklist:
+  - "TypeScript strict compliance"
+  - "Proper error handling"
+  - "Permission checks implemented"
+  - "Responsive design verified"
+  - "Loading states included"
+  - "Toast notifications added"
+  - "Proper import organization"
+  - "Consistent naming conventions"
+  - "Security considerations addressed"

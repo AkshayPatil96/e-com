@@ -1,0 +1,453 @@
+I'll provide you with a comprehensive overview of the Brand API system similar to the category system, covering all the details needed for frontend implementation in the admin panel.
+
+🔥 Brand API Complete Documentation
+1. API Endpoints Overview
+BASE_URL: /api/v1/admin/brands
+
+// CRUD Operations
+GET    /admin/brands                    // List brands with filters
+GET    /admin/brands/:id                // Get single brand
+POST   /admin/brands                    // Create brand
+PUT    /admin/brands/:id                // Update brand
+DELETE /admin/brands/:id                // Soft delete brand
+
+// Special Operations  
+GET    /admin/brands/statistics         // Dashboard statistics
+GET    /admin/brands/search             // Search/autocomplete
+POST   /admin/brands/bulk-action        // Bulk operations
+PUT    /admin/brands/:id/restore        // Restore deleted brand
+PUT    /admin/brands/:id/toggle-status  // Toggle active/inactive
+
+// Public APIs (no auth)
+GET    /brands/search                   // Public search
+GET    /brands/:slug                    // Get brand by slug
+
+
+2. Request/Response Types & Interfaces
+Brand Core Interface
+interface IBrand {
+  _id: string;
+  name: string;                    // Brand name (required)
+  slug: string;                    // Auto-generated URL slug
+  description?: string;            // Full description
+  shortDescription?: string;       // Brief description for cards
+  
+  // Visual Assets
+  logo?: IImage;                   // Brand logo
+  banner?: IImage;                 // Brand banner
+  images?: IImage[];               // Additional images
+  
+  // Business Information
+  businessInfo: {
+    foundingYear?: number;
+    originCountry?: string;
+    headquarters?: string;
+    parentCompany?: string;
+    legalName?: string;
+    registrationNumber?: string;
+    taxId?: string;
+  };
+  
+  // Social Media & Web
+  socialMedia: {
+    website?: string;
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+  
+  // SEO Fields
+  seo: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string[];
+    canonicalUrl?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: IImage;
+  };
+  
+  // Analytics (Auto-calculated)
+  analytics: {
+    productCount: number;
+    totalSales: number;
+    averageRating: number;
+    totalRatings: number;
+    viewCount: number;
+    searchCount: number;
+    conversionRate: number;
+  };
+  
+  // Relationships
+  categories: string[];            // Associated category IDs
+  parent?: string;                 // Parent brand ID (for brand families)
+  
+  // Status & Display
+  isActive: boolean;               // Active/Inactive
+  isVerified: boolean;             // Verified status
+  isDeleted: boolean;              // Soft delete flag
+  isFeatured: boolean;             // Featured brand
+  isPopular: boolean;              // Popular brand
+  isPremium: boolean;              // Premium brand
+  showInHomepage: boolean;         // Homepage display
+  displayOrder?: number;           // Sort order
+  
+  // Audit Fields
+  createdBy: string;               // User ID
+  updatedBy: string;               // User ID
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+Admin Request/Response Types
+// Create Brand Request Body
+interface ICreateBrandAdminBody {
+  name: string;                    // Required
+  description: string;             // Required
+  shortDescription?: string;
+  logo?: string;                   // Image URL
+  banner?: string;                 // Image URL
+  businessInfo?: IBrandBusinessInfo;
+  socialMedia?: IBrandSocialMedia;
+  seo?: IBrandSEO;
+  order?: number;                  // Display order (0-9999)
+  isActive?: boolean;              // Default: true
+  isFeatured?: boolean;            // Default: false
+  showInMenu?: boolean;            // Default: true
+  showInHomepage?: boolean;        // Default: false
+}
+
+// Update Brand Request Body (all fields optional)
+interface IUpdateBrandAdminBody {
+  name?: string;
+  description?: string;
+  shortDescription?: string;
+  logo?: string;
+  banner?: string;
+  businessInfo?: IBrandBusinessInfo;
+  socialMedia?: IBrandSocialMedia;
+  seo?: IBrandSEO;
+  order?: number;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  showInMenu?: boolean;
+  showInHomepage?: boolean;
+}
+
+// Bulk Action Request
+interface IBrandBulkActionBody {
+  brandIds: string[];             // Array of brand IDs
+  action: "activate" | "deactivate" | "delete" | "restore" | "feature" | "unfeature";
+}
+
+
+3. Query Parameters & Filters
+GET /admin/brands - List Brands
+interface IBrandAdminFilters {
+  // Pagination
+  page?: number;                   // Default: 1
+  limit?: number;                  // Default: 20, Max: 100
+  
+  // Search & Filtering
+  search?: string;                 // Search in name, description, slug
+  status?: "all" | "active" | "inactive";     // Default: "all"
+  featured?: "all" | "featured" | "not-featured"; // Default: "all"
+  isDeleted?: boolean;             // Default: false
+  showInMenu?: boolean;            // Filter by menu visibility
+  showInHomepage?: boolean;        // Filter by homepage visibility
+  
+  // Sorting
+  sortBy?: "name" | "createdAt" | "order" | "productCount" | "viewCount";
+  sortOrder?: "asc" | "desc";      // Default: "asc"
+}
+
+// Example Query String:
+// GET /admin/brands?page=1&limit=20&search=nike&status=active&featured=featured&sortBy=order&sortOrder=asc
+
+
+GET /admin/brands/search - Search Brands
+// Query Parameters
+interface IBrandSearchQuery {
+  q?: string;                      // Search query
+  limit?: number;                  // Default: 20, Max: 50
+  page?: number;                   // Default: 1
+  includeDeleted?: boolean;        // Default: false
+}
+
+// Example: GET /admin/brands/search?q=adi&limit=10&page=1
+
+
+
+4. Response Formats
+Brand List Response
+interface IBrandAdminListResponse {
+  data: IBrandAdminItem[];         // Array of brands
+  totalPages: number;              // Total pages
+  totalCount: number;              // Total brands count
+  currentPage: number;             // Current page
+  hasNextPage: boolean;            // Has next page
+  hasPreviousPage: boolean;        // Has previous page
+  statistics?: IBrandStatistics;   // Stats on first page only
+}
+
+interface IBrandAdminItem {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  shortDescription?: string;
+  logo?: string;
+  banner?: string;
+  analytics: {
+    productCount: number;
+    viewCount: number;
+    totalSales: number;
+    averageRating: number;
+  };
+  isActive: boolean;
+  isFeatured: boolean;
+  isVerified: boolean;
+  showInMenu: boolean;
+  showInHomepage: boolean;
+  displayOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdByName: string;           // Creator's full name
+  updatedByName: string;           // Updater's full name
+}
+
+Brand Statistics Response
+interface IBrandStatistics {
+  totalBrands: number;             // Total active brands
+  activeBrands: number;            // Active brands count
+  inactiveBrands: number;          // Inactive brands count
+  featuredBrands: number;          // Featured brands count
+  deletedBrands: number;           // Soft deleted count
+  averageProductsPerBrand: number; // Avg products per brand
+  brandsWithoutProducts: number;   // Brands with 0 products
+  brandsWithMostProducts: Array<{
+    _id: string;
+    name: string;
+    productCount: number;
+  }>;
+  topPerformingBrands: Array<{
+    _id: string;
+    name: string;
+    viewCount: number;
+    productCount: number;
+  }>;
+}
+
+
+Search Response
+interface IBrandSearchResponse {
+  results: IBrandSearchItem[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasMore: boolean;
+    limit: number;
+    count: number;
+  };
+  query: string;
+}
+
+interface IBrandSearchItem {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logo?: string;
+  isActive: boolean;
+  isFeatured: boolean;
+  productCount: number;
+}
+
+
+5. Validation Rules
+// Brand Validation Rules
+const BrandValidation = {
+  name: {
+    required: true,
+    minLength: 2,
+    maxLength: 100,
+    trim: true
+  },
+  description: {
+    required: true,
+    maxLength: 2000,
+    trim: true
+  },
+  shortDescription: {
+    maxLength: 300,
+    trim: true
+  },
+  order: {
+    min: 0,
+    max: 9999,
+    type: "number"
+  },
+  seo: {
+    metaTitle: { maxLength: 60 },
+    metaDescription: { maxLength: 160 },
+    metaKeywords: { maxItems: 20 }
+  },
+  businessInfo: {
+    email: { format: "email" },
+    foundingYear: { min: 1800, max: currentYear },
+    companySize: {
+      enum: ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"]
+    }
+  }
+};
+
+
+6. Frontend Implementation Examples
+Create Brand Form Fields
+// Brand Creation Form Structure
+interface BrandFormData {
+  // Basic Information
+  name: string;                    // Text input (required)
+  description: string;             // Textarea (required)
+  shortDescription?: string;       // Textarea (optional)
+  
+  // Visual Assets
+  logo?: File | string;            // Image upload
+  banner?: File | string;          // Image upload
+  
+  // Business Information
+  businessInfo?: {
+    foundingYear?: number;         // Number input
+    originCountry?: string;        // Country select
+    headquarters?: string;         // Text input
+    parentCompany?: string;        // Text input
+    legalName?: string;            // Text input
+    website?: string;              // URL input
+  };
+  
+  // Social Media
+  socialMedia?: {
+    facebook?: string;             // URL input
+    instagram?: string;            // URL input
+    twitter?: string;              // URL input
+    linkedin?: string;             // URL input
+    youtube?: string;              // URL input
+  };
+  
+  // SEO Fields
+  seo?: {
+    metaTitle?: string;            // Text input (max 60)
+    metaDescription?: string;      // Textarea (max 160)
+    metaKeywords?: string[];       // Tag input
+  };
+  
+  // Display Settings
+  displayOrder?: number;           // Number input (0-9999)
+  isActive?: boolean;              // Toggle switch
+  isFeatured?: boolean;            // Toggle switch  
+  showInMenu?: boolean;            // Toggle switch
+  showInHomepage?: boolean;        // Toggle switch
+}
+
+Brand List Component Props
+interface BrandListProps {
+  filters: {
+    search: string;
+    status: "all" | "active" | "inactive";
+    featured: "all" | "featured" | "not-featured";
+    showInMenu?: boolean;
+    showInHomepage?: boolean;
+  };
+  pagination: {
+    page: number;
+    limit: number;
+  };
+  sorting: {
+    sortBy: string;
+    sortOrder: "asc" | "desc";
+  };
+  onFilterChange: (filters: any) => void;
+  onPageChange: (page: number) => void;
+  onSortChange: (field: string, order: string) => void;
+  onBulkAction: (brandIds: string[], action: string) => void;
+}
+
+API Service Functions
+class BrandApiService {
+  // Get brands list
+  async getBrands(filters: IBrandAdminFilters) {
+    const queryString = new URLSearchParams(filters).toString();
+    return api.get(`/admin/brands?${queryString}`);
+  }
+  
+  // Create brand
+  async createBrand(data: ICreateBrandAdminBody) {
+    return api.post('/admin/brands', data);
+  }
+  
+  // Update brand  
+  async updateBrand(id: string, data: IUpdateBrandAdminBody) {
+    return api.put(`/admin/brands/${id}`, data);
+  }
+  
+  // Delete brand
+  async deleteBrand(id: string) {
+    return api.delete(`/admin/brands/${id}`);
+  }
+  
+  // Search brands
+  async searchBrands(query: string, options?: { limit?: number, page?: number }) {
+    const params = new URLSearchParams({ q: query, ...options }).toString();
+    return api.get(`/admin/brands/search?${params}`);
+  }
+  
+  // Bulk actions
+  async bulkAction(brandIds: string[], action: string) {
+    return api.post('/admin/brands/bulk-action', { brandIds, action });
+  }
+  
+  // Get statistics
+  async getStatistics() {
+    return api.get('/admin/brands/statistics');
+  }
+}
+
+
+7. Frontend UI Components Needed
+BrandList - Main listing page with filters and pagination
+BrandForm - Create/Edit brand form
+BrandCard - Individual brand display card
+BrandSearch - Search/autocomplete component
+BrandFilters - Filter sidebar/panel
+BrandStatistics - Dashboard statistics widget
+BrandBulkActions - Bulk operation controls
+BrandImageUpload - Logo/banner upload component
+
+
+8. Error Handling
+// Standard Error Response Format
+interface ApiError {
+  success: false;
+  message: string;
+  errors?: {
+    field?: string;
+    code?: string;
+    value?: any;
+    constraints?: string[];
+  }[];
+}
+
+// Common Error Cases
+const BrandErrors = {
+  DUPLICATE_NAME: "Brand with this name already exists",
+  INVALID_ID: "Invalid brand ID format",
+  BRAND_NOT_FOUND: "Brand not found",
+  HAS_PRODUCTS: "Cannot delete brand with associated products",
+  VALIDATION_ERROR: "Validation failed for provided data"
+};
+
+This comprehensive documentation provides everything needed for frontend implementation of the Brand Admin Panel, including all API endpoints, data structures, validation rules, and component requirements.

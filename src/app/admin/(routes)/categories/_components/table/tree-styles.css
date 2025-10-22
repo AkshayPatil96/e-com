@@ -1,0 +1,247 @@
+/* Enhanced Tree Table Styles */
+
+/* Tree connection lines styles */
+.tree-line {
+  @apply border-slate-300 dark:border-slate-600;
+}
+
+.tree-line-vertical {
+  @apply absolute border-l-2 tree-line;
+  left: 10px;
+  top: 0;
+}
+
+.tree-line-horizontal {
+  @apply absolute border-t-2 tree-line;
+  left: 10px;
+  top: 50%;
+  width: 10px;
+}
+
+.tree-connector {
+  @apply absolute w-2 h-2 bg-slate-300 dark:bg-slate-600 rounded-full;
+  left: 19px;
+  top: calc(50% - 4px);
+}
+
+/* Enhanced tree node styles */
+.tree-node {
+  @apply relative transition-colors duration-200;
+}
+
+.tree-node:hover {
+  @apply bg-slate-50 dark:bg-slate-800;
+}
+
+.tree-node.selected {
+  @apply bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500;
+}
+
+.tree-node.indeterminate {
+  @apply bg-blue-25 dark:bg-blue-900/10 border-l-4 border-blue-300;
+}
+
+/* Expand/collapse button styles */
+.expand-button {
+  @apply w-6 h-6 p-0 rounded-sm transition-all duration-200;
+  @apply hover:bg-slate-100 dark:hover:bg-slate-700;
+  @apply focus:ring-2 focus:ring-blue-500 focus:ring-offset-1;
+}
+
+.expand-button:hover {
+  @apply scale-110;
+}
+
+.expand-button.expanded {
+  @apply rotate-90 transform;
+}
+
+/* Level indentation */
+.tree-indent-0 { margin-left: 0; }
+.tree-indent-1 { margin-left: 20px; }
+.tree-indent-2 { margin-left: 40px; }
+.tree-indent-3 { margin-left: 60px; }
+.tree-indent-4 { margin-left: 80px; }
+.tree-indent-5 { margin-left: 100px; }
+.tree-indent-6 { margin-left: 120px; }
+
+/* Virtual scrolling optimization */
+.virtual-row {
+  @apply absolute w-full border-b border-slate-200 dark:border-slate-700;
+  contain: layout style paint;
+}
+
+.virtual-row:hover {
+  @apply bg-slate-50 dark:bg-slate-800;
+}
+
+/* Bulk selection bar */
+.bulk-actions-bar {
+  @apply sticky top-0 z-20 bg-blue-50 dark:bg-blue-900/20;
+  @apply border-b border-blue-200 dark:border-blue-800;
+  @apply backdrop-blur-sm;
+}
+
+/* Selection indicators */
+.selection-checkbox {
+  @apply transition-all duration-200;
+}
+
+.selection-checkbox:hover {
+  @apply scale-110;
+}
+
+.selection-checkbox[data-state="indeterminate"] {
+  @apply bg-blue-500 border-blue-500;
+}
+
+/* Status badges enhanced */
+.status-badge-active {
+  @apply bg-green-50 text-green-700 border-green-200;
+  @apply dark:bg-green-900/20 dark:text-green-400 dark:border-green-800;
+}
+
+.status-badge-inactive {
+  @apply bg-gray-50 text-gray-600 border-gray-200;
+  @apply dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800;
+}
+
+.featured-badge {
+  @apply bg-yellow-50 text-yellow-800 border-yellow-200;
+  @apply dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800;
+}
+
+/* Table header styles */
+.table-header {
+  @apply sticky top-0 z-10 bg-white dark:bg-slate-900;
+  @apply border-b border-slate-200 dark:border-slate-700;
+  @apply backdrop-blur-sm;
+}
+
+/* Sort indicators */
+.sort-button {
+  @apply hover:bg-slate-100 dark:hover:bg-slate-800;
+  @apply transition-colors duration-200;
+}
+
+.sort-indicator {
+  @apply transition-transform duration-200;
+}
+
+.sort-indicator.active {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+/* Action dropdown */
+.action-dropdown {
+  @apply bg-white dark:bg-slate-800;
+  @apply border border-slate-200 dark:border-slate-700;
+  @apply shadow-lg;
+}
+
+/* Visibility badges */
+.visibility-badge {
+  @apply bg-purple-50 text-purple-700 border-purple-200;
+  @apply dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800;
+}
+
+/* Loading states */
+.loading-skeleton {
+  @apply animate-pulse bg-slate-200 dark:bg-slate-700 rounded;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tree-indent-1 { margin-left: 15px; }
+  .tree-indent-2 { margin-left: 30px; }
+  .tree-indent-3 { margin-left: 45px; }
+  .tree-indent-4 { margin-left: 60px; }
+  .tree-indent-5 { margin-left: 75px; }
+  .tree-indent-6 { margin-left: 90px; }
+  
+  .virtual-row {
+    font-size: 14px;
+  }
+  
+  .tree-line-vertical,
+  .tree-line-horizontal {
+    @apply border-l border-t;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .tree-line {
+    @apply border-black dark:border-white;
+    border-width: 2px;
+  }
+  
+  .tree-connector {
+    @apply bg-black dark:bg-white;
+  }
+  
+  .tree-node.selected {
+    @apply bg-blue-200 dark:bg-blue-800 border-l-8;
+  }
+}
+
+/* Animation for expand/collapse */
+@keyframes expand {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes collapse {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+}
+
+.tree-expand-animation {
+  animation: expand 0.2s ease-out;
+  transform-origin: top;
+}
+
+.tree-collapse-animation {
+  animation: collapse 0.2s ease-in;
+  transform-origin: top;
+}
+
+/* Focus states for accessibility */
+.tree-node:focus-within {
+  @apply ring-2 ring-blue-500 ring-offset-2 outline-none;
+}
+
+.expand-button:focus {
+  @apply ring-2 ring-blue-500 ring-offset-1 outline-none;
+}
+
+/* Print styles */
+@media print {
+  .bulk-actions-bar {
+    display: none !important;
+  }
+  
+  .action-dropdown {
+    display: none !important;
+  }
+  
+  .tree-node {
+    @apply border-b border-gray-300;
+  }
+  
+  .tree-line {
+    @apply border-black;
+  }
+}
